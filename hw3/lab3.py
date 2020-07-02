@@ -81,10 +81,11 @@ def draw_triangle(frame,values,depth,fragment_shader):
                 #更新深度
                 depth[height-j-1][i] = z_interpolated
                 #计算各个属性的插值
-                interpolated_color = interpolate(alpha,beta,gamma,values[0][4],values[1][4],values[2][4]);
-                interpolated_normal = interpolate(alpha,beta,gamma,values[0][2],values[1][2],values[2][2]);
-                interpolated_uv = interpolate(alpha,beta,gamma,values[0][3],values[1][3],values[2][3]);
-                interpolated_xyz = interpolate(alpha,beta,gamma,values[0][0],values[1][0],values[2][0]);
+                interpolated_color = interpolate(alpha,beta,gamma,values[0][4],values[1][4],values[2][4])
+                interpolated_normal = interpolate(alpha,beta,gamma,values[0][2],values[1][2],values[2][2])
+                interpolated_uv = interpolate(alpha,beta,gamma,values[0][3],values[1][3],values[2][3])
+                interpolated_xyz = interpolate(alpha,beta,gamma,values[0][0],values[1][0],values[2][0])
+                #使用渲染函数计算对应像素的颜色
                 frame[height-j-1][i] = fragment_shader.active_shader(interpolated_color,normalized(interpolated_normal),interpolated_uv,interpolated_xyz)
 class Shader(object):
     #这是像素(片段)着色器
@@ -148,6 +149,7 @@ class Shader(object):
             result_color += ambient+diffuse+specular
         return result_color*255.
     def bump_fragment_shader(self,color,normal,uv,xyz):
+        #凹凸贴图的渲染
         kh = 0.2
         kn = 0.1
         x,y,z=normal
@@ -162,7 +164,7 @@ class Shader(object):
         ln=np.array([-dU,-dV,1.])
         return normalized(tbn.dot(ln.T))*255.
     def displacement_fragment_shader(self,color,normal,uv,xyz):
-        kd=self.getColor(uv[0],uv[1])/255.
+        kd=color
         kh = 0.2
         kn = 0.1
         x,y,z=normal
@@ -254,6 +256,8 @@ for i in range(0,len(obj),3):
         points.append(tmp)
     draw_triangle(frame,points,depth,fragment_shader)
 dst=np.zeros((height,width,3),dtype=np.uint8)
+#对负数进行归零,模拟convertTo函数
+frame[frame<0.]=0.
 frame=cv2.convertScaleAbs(frame,dst,1.0)
 #因为imshow展示的是BGR的颜色,所以要转一下
 dst=cv2.cvtColor(dst,cv2.COLOR_RGB2BGR)
